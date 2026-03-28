@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>You're offline</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background:#0b0b0b; color:#fff; margin:0; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+    .container { max-width:720px; padding:32px; text-align:center; }
+    .logo { width:64px; height:64px; margin: 0 auto 16px; object-fit:contain; }
+    h1 { font-size:36px; margin:0 0 12px; }
+    p { color:#cfcfcf; margin:0 0 18px; }
+    .actions { display:flex; gap:12px; justify-content:center; margin-top:12px; }
+    .btn { padding:10px 16px; border-radius:10px; border:1px solid #2c2c2c; background:#111; color:#fff; text-decoration:none; cursor:pointer; }
+    .btn.primary { background:#ff6b00; color:#0b0b0b; border:none; }
+    .status { margin-top:12px; color:#9ca3af; font-size:14px; }
+    a { color:#ff6b00; }
+  </style>
+</head>
+<body>
+  <div class="container" role="main">
+    <img src="/logo.png" alt="Logo" class="logo" />
+    <h1>You're offline</h1>
+    <p>It looks like you're not connected to the internet. We'll try to resume the page you were on when the connection is restored.</p>
+    <div class="actions">
+      <button id="retry" class="btn primary">Try to resume</button>
+      <a id="home" class="btn" href="/">Go to homepage</a>
+    </div>
+    <div class="status" id="status">Checking connection…</div>
+  </div>
+
+  <script>
+    (function () {
+      const statusEl = document.getElementById('status');
+      const retryBtn = document.getElementById('retry');
+      const last = (function() { try { return localStorage.getItem('lastVisited') || '/'; } catch (e) { return '/'; } })();
+
+      function updateStatus() {
+        statusEl.textContent = navigator.onLine ? 'You are online' : 'Offline — waiting to reconnect';
+      }
+      updateStatus();
+      window.addEventListener('online', updateStatus);
+      window.addEventListener('offline', updateStatus);
+
+      retryBtn.addEventListener('click', () => {
+        if (navigator.onLine) {
+          statusEl.textContent = 'Online — resuming…';
+          setTimeout(() => {
+            window.location.href = last;
+          }, 200);
+          return;
+        }
+        statusEl.textContent = 'Still offline — waiting to reconnect. Will open automatically when back online.';
+        const check = setInterval(() => {
+          if (navigator.onLine) {
+            clearInterval(check);
+            statusEl.textContent = 'Back online — resuming…';
+            setTimeout(() => window.location.href = last, 300);
+          }
+        }, 1500);
+      });
+    })();
+  </script>
+</body>
+</html>
