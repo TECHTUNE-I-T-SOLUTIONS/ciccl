@@ -10,7 +10,7 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
 
 export const metadata: Metadata = {
-  title: 'CICCL | Professional Quantity Surveyor',
+  title: 'CICCL | Professional Quantity Surveyor, project manager, and construction manager',
   description: 'Expert quantity surveying services for construction projects. Cost planning, budget management, and contract administration by certified professional.',
   keywords: ['Quantity Surveyor', 'Cost Planning', 'Project Control', 'Budget Management', 'Nigeria'],
   authors: [{ name: 'CICCL' }],
@@ -18,14 +18,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_NG',
-    url: 'https://ciccl.com',
-    title: 'CICCL | Professional Quantity Surveyor',
+    url: 'https://ciccl.vercel.app',
+    title: 'CICCL | Professional Quantity Surveyor, project manager, and construction manager',
     description: 'Expert quantity surveying and project management services',
     siteName: 'CICCL Quantity Surveyors',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'CICCL | Professional Quantity Surveyor',
+    title: 'CICCL | Professional Quantity Surveyor, project manager, and construction manager',
     description: 'Expert quantity surveying services',
   },
   icons: {
