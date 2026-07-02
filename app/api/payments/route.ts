@@ -86,9 +86,8 @@ export async function POST(request: NextRequest) {
 
     const transactionRef = uuidv4();
 
-    // Create payment record
-    const payment = await Payment.create({
-      clientId: body.clientId || null,
+    // Create payment record - only include clientId if provided
+    const paymentData: any = {
       serviceType: serviceType || 'General Service',
       packageType: packageType || 'Standard',
       amount,
@@ -100,7 +99,11 @@ export async function POST(request: NextRequest) {
       clientEmail,
       clientName,
       clientPhone,
-    });
+    };
+    if (body.clientId) {
+      paymentData.clientId = body.clientId;
+    }
+    const payment = await Payment.create(paymentData);
 
     if (paymentMethod === 'paystack') {
       // Initialize Paystack payment

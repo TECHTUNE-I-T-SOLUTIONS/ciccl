@@ -30,8 +30,11 @@ export async function PUT(
       );
     }
 
+    // params is a Promise in Next.js 16 — must be awaited
+    const { id } = await params;
+
     const review = await Review.findByIdAndUpdate(
-      params.id,
+      id,
       { status },
       { new: true }
     );
@@ -67,7 +70,10 @@ export async function DELETE(
 
     await connectDB();
 
-    const review = await Review.findByIdAndDelete(params.id);
+    // params is a Promise in Next.js 16 — must be awaited
+    const { id } = await params;
+
+    const review = await Review.findByIdAndDelete(id);
 
     if (!review) {
       return NextResponse.json({ error: 'Review not found' }, { status: 404 });

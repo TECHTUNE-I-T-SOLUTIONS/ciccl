@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
       { $limit: 10 },
     ]);
 
-    const totalRevenue = successfulPayments.reduce((sum, p) => sum + p.amount, 0);
+    const totalRevenue = successfulPayments.length > 0 ? successfulPayments[0].total : 0;
 
     // Monthly breakdown
     const monthlyData = [];

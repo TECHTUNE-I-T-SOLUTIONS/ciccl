@@ -11,13 +11,29 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const skip = parseInt(searchParams.get('skip') || '0');
     const limit = parseInt(searchParams.get('limit') || '12');
+    const statusParam = searchParams.get('status');
 
-    const reviews = await Review.find({ status: 'approved' })
+    // Check auth for status=all (admin view)
+    let query: any = { status: 'approved' };
+    if (statusParam) {
+      const authHeader = request.headers.get('authorization');
+      const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+      const user = token ? verifyToken(token) : null;
+      if (user && user.role === 'admin') {
+        if (statusParam === 'all') {
+          query = {};
+        } else if (['pending', 'approved', 'rejected'].includes(statusParam)) {
+          query = { status: statusParam };
+        }
+      }
+    }
+
+    const reviews = await Review.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await Review.countDocuments({ status: 'approved' });
+    const total = await Review.countDocuments(query);
 
     return NextResponse.json(
       {

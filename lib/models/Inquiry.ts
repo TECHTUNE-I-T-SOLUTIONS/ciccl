@@ -9,6 +9,7 @@ export interface IInquiry {
   budgetRange: string;
   message: string;
   whatsappSent: boolean;
+  status: 'new' | 'contacted' | 'converted';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -49,6 +50,11 @@ const InquirySchema = new Schema(
       type: Boolean,
       default: true,
     },
+    status: {
+      type: String,
+      enum: ['new', 'contacted', 'converted'],
+      default: 'new',
+    },
   },
   {
     timestamps: true,
@@ -56,6 +62,7 @@ const InquirySchema = new Schema(
 );
 
 InquirySchema.index({ email: 1 });
+InquirySchema.index({ status: 1 });
 InquirySchema.index({ createdAt: -1 });
 
 export default mongoose.models.Inquiry || mongoose.model<IInquiry>('Inquiry', InquirySchema);

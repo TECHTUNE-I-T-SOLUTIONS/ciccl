@@ -4,19 +4,43 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { Loader2, MessageCircle, Eye, MoreVertical } from 'lucide-react';
+import { Loader2, MessageCircle, Eye } from 'lucide-react';
 import { AdminLayout } from '@/components/AdminLayout';
 
 interface Inquiry {
   _id: string;
-  fullName: string;
+  name: string;
   email: string;
   phone: string;
-  serviceType: string;
-  budget: number;
-  description: string;
-  status: 'new' | 'contacted' | 'converted';
+  projectType: string;
+  budgetRange: string;
+  message: string;
+  whatsappSent: boolean;
+  status?: 'new' | 'contacted' | 'converted';
   createdAt: string;
+}
+
+const BUDGET_RANGE_LABELS: Record<string, string> = {
+  'under-5m': 'Under ₦5M',
+  '5m-50m': '₦5M - ₦50M',
+  '50m-500m': '₦50M - ₦500M',
+  '500m-1b': '₦500M - ₦1B',
+  'above-1b': 'Above ₦1B',
+};
+
+const SERVICE_LABELS: Record<string, string> = {
+  'cost-estimation': 'Cost Estimation',
+  'budget-planning': 'Budget Planning',
+  'contract-admin': 'Contract Administration',
+  'risk-management': 'Risk Management',
+  'value-engineering': 'Value Engineering',
+  'project-control': 'Project Control',
+};
+
+function getStatus(s: string | undefined): 'new' | 'contacted' | 'converted' {
+  if (s === 'contacted') return 'contacted';
+  if (s === 'converted') return 'converted';
+  return 'new';
 }
 
 export default function AdminClients() {
@@ -54,7 +78,9 @@ export default function AdminClients() {
       if (!response.ok) throw new Error('Failed to fetch client inquiries');
 
       const data = await response.json();
-      setInquiries(Array.isArray(data.data) ? data.data : []);
+      const items = Array.isArray(data.data) ? data.data : [];
+      // Ensure each inquiry has a status (default 'new' for legacy records)
+      setInquiries(items.map((i: Inquiry) => ({ ...i, status: i.status || 'new' })));
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error fetching inquiries';
       setError(errorMsg);
@@ -79,12 +105,11 @@ export default function AdminClients() {
 
       if (!response.ok) throw new Error('Failed to update status');
 
-      const updatedInquiry = await response.json();
       setInquiries(
-        inquiries.map(i => (i._id === inquiryId ? updatedInquiry.data : i))
+        inquiries.map(i => (i._id === inquiryId ? { ...i, status: newStatus } : i))
       );
       if (selectedInquiry?._id === inquiryId) {
-        setSelectedInquiry(updatedInquiry.data);
+        setSelectedInquiry(prev => prev ? { ...prev, status: newStatus } : null);
       }
       toast.success('Status updated successfully');
     } catch (err) {
@@ -97,26 +122,34 @@ export default function AdminClients() {
 
   const handleContactViaWhatsApp = (inquiry: Inquiry) => {
     const message = encodeURIComponent(
-      `Hi ${inquiry.fullName}, thank you for your inquiry about ${inquiry.serviceType}. We would like to discuss your project requirements. Please let us know your availability for a call.`
+      `Hi ${inquiry.name}, thank you for your inquiry about ${SERVICE_LABELS[inquiry.projectType] || inquiry.projectType}. We would like to discuss your project requirements. Please let us know your availability for a call.`
     );
     window.open(`https://wa.me/${inquiry.phone.replace(/\D/g, '')}?text=${message}`, '_blank');
     handleUpdateStatus(inquiry._id, 'contacted');
   };
 
   const filteredInquiries = inquiries.filter(i => {
-    if (filter === 'new') return i.status === 'new';
-    if (filter === 'contacted') return i.status === 'contacted';
-    if (filter === 'converted') return i.status === 'converted';
+    const s = getStatus(i.status);
+    if (filter === 'new') return s === 'new';
+    if (filter === 'contacted') return s === 'contacted';
+    if (filter === 'converted') return s === 'converted';
     return true;
   });
 
   const stats = {
     total: inquiries.length,
-    new: inquiries.filter(i => i.status === 'new').length,
-    contacted: inquiries.filter(i => i.status === 'contacted').length,
-    converted: inquiries.filter(i => i.status === 'converted').length,
-    totalBudget: inquiries.reduce((sum, i) => sum + (i.budget || 0), 0),
+    new: inquiries.filter(i => getStatus(i.status) === 'new').length,
+    contacted: inquiries.filter(i => getStatus(i.status) === 'contacted').length,
+    converted: inquiries.filter(i => getStatus(i.status) === 'converted').length,
   };
+
+  const statusBadge = (s: string | undefined) => {
+    const st = getStatus(s);
+    if (st === 'new') return 'bg-orange-500/20 text-orange-400';
+    if (st === 'contacted') return 'bg-blue-500/20 text-blue-400';
+    return 'bg-green-500/20 text-green-400';
+  };
+  const statusText = (s: string | undefined) => getStatus(s).toUpperCase();
 
   return (
     <AdminLayout>
@@ -136,24 +169,23 @@ export default function AdminClients() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4 mb-6">
           {[
-            { label: 'Total Inquiries', value: stats.total },
+            { label: 'Total Inquiries', value: stats.total, color: '' },
             { label: 'New', value: stats.new, color: 'text-orange-400' },
             { label: 'Contacted', value: stats.contacted, color: 'text-blue-400' },
             { label: 'Converted', value: stats.converted, color: 'text-green-400' },
-            { label: 'Potential Revenue', value: `₦${(stats.totalBudget / 1000000).toFixed(1)}M`, color: 'text-primary' },
           ].map((stat, i) => (
             <div key={i} className="p-3 md:p-4 bg-card border border-border rounded-lg">
               <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
-              <p className={`text-lg md:text-2xl font-bold ${stat.color || ''}`}>{stat.value}</p>
+              <p className={`text-lg md:text-2xl font-bold ${stat.color}`}>{stat.value}</p>
             </div>
           ))}
         </div>
 
         {/* Filter Buttons */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {['new', 'contacted', 'converted', 'all'].map(f => (
+          {['all', 'new', 'contacted', 'converted'].map(f => (
             <button
               key={f}
               onClick={() => setFilter(f as any)}
@@ -193,24 +225,18 @@ export default function AdminClients() {
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-lg font-semibold">{inquiry.fullName}</h3>
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        inquiry.status === 'new'
-                          ? 'bg-orange-500/20 text-orange-400'
-                          : inquiry.status === 'contacted'
-                          ? 'bg-blue-500/20 text-blue-400'
-                          : 'bg-green-500/20 text-green-400'
-                      }`}>
-                        {inquiry.status.toUpperCase()}
+                      <h3 className="text-lg font-semibold">{inquiry.name}</h3>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${statusBadge(inquiry.status)}`}>
+                        {statusText(inquiry.status)}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">{inquiry.email}</p>
+                    <p className="text-sm text-muted-foreground mb-2">{inquiry.email} | {inquiry.phone}</p>
                     <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-2">
-                      <span>Service: {inquiry.serviceType}</span>
-                      <span>Budget: ₦{inquiry.budget.toLocaleString()}</span>
+                      <span>Service: {SERVICE_LABELS[inquiry.projectType] || inquiry.projectType}</span>
+                      <span>Budget: {BUDGET_RANGE_LABELS[inquiry.budgetRange] || inquiry.budgetRange}</span>
                       <span>{new Date(inquiry.createdAt).toLocaleDateString()}</span>
                     </div>
-                    <p className="text-sm text-foreground line-clamp-2">{inquiry.description}</p>
+                    <p className="text-sm text-foreground line-clamp-2">{inquiry.message}</p>
                   </div>
 
                   <div className="flex gap-2">
@@ -261,7 +287,7 @@ export default function AdminClients() {
               <div className="space-y-4 mb-6">
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Name</p>
-                  <p className="font-medium">{selectedInquiry.fullName}</p>
+                  <p className="font-medium">{selectedInquiry.name}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Email</p>
@@ -273,26 +299,26 @@ export default function AdminClients() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Service Type</p>
-                  <p className="font-medium">{selectedInquiry.serviceType}</p>
+                  <p className="font-medium">{SERVICE_LABELS[selectedInquiry.projectType] || selectedInquiry.projectType}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Budget</p>
-                  <p className="font-medium text-lg text-primary">₦{selectedInquiry.budget.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground mb-1">Budget Range</p>
+                  <p className="font-medium">{BUDGET_RANGE_LABELS[selectedInquiry.budgetRange] || selectedInquiry.budgetRange}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Description</p>
-                  <p className="text-sm">{selectedInquiry.description}</p>
+                  <p className="text-xs text-muted-foreground mb-1">Message</p>
+                  <p className="text-sm whitespace-pre-wrap">{selectedInquiry.message}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Status</p>
                   <p className={`font-medium ${
-                    selectedInquiry.status === 'new'
+                    getStatus(selectedInquiry.status) === 'new'
                       ? 'text-orange-400'
-                      : selectedInquiry.status === 'contacted'
+                      : getStatus(selectedInquiry.status) === 'contacted'
                       ? 'text-blue-400'
                       : 'text-green-400'
                   }`}>
-                    {selectedInquiry.status.toUpperCase()}
+                    {statusText(selectedInquiry.status)}
                   </p>
                 </div>
                 <div>
@@ -302,7 +328,7 @@ export default function AdminClients() {
               </div>
 
               <div className="flex gap-2">
-                {selectedInquiry.status === 'new' && (
+                {getStatus(selectedInquiry.status) === 'new' && (
                   <>
                     <button
                       onClick={() => {
@@ -323,7 +349,7 @@ export default function AdminClients() {
                     </button>
                   </>
                 )}
-                {selectedInquiry.status === 'contacted' && (
+                {getStatus(selectedInquiry.status) === 'contacted' && (
                   <button
                     onClick={() => {
                       handleUpdateStatus(selectedInquiry._id, 'converted');

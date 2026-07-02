@@ -141,7 +141,7 @@ export default function AdminReviews() {
 
         {/* Filter Buttons */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {['pending', 'approved', 'rejected', 'all'].map(f => (
+          {['all', 'pending', 'approved', 'rejected'].map(f => (
             <button
               key={f}
               onClick={() => setFilter(f as any)}

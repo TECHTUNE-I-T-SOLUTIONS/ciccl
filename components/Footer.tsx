@@ -73,19 +73,19 @@ export function Footer() {
             <h4 className="font-semibold mb-4">Services</h4>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">
+                <Link href="/hire?service=cost-estimation" className="text-muted-foreground hover:text-primary transition-colors text-sm">
                   Cost Estimation
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">
+                <Link href="/hire?service=budget-planning" className="text-muted-foreground hover:text-primary transition-colors text-sm">
                   Budget Planning
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">
+                <Link href="/hire?service=project-control" className="text-muted-foreground hover:text-primary transition-colors text-sm">
                   Project Control
-                </a>
+                </Link>
               </li>
             </ul>
           </motion.div>

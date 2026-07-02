@@ -2,7 +2,7 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export interface IPayment {
   _id: Types.ObjectId | string;
-  clientId: string;
+  clientId?: string;
   serviceType: string;
   packageType: string;
   amount: number;
@@ -27,7 +27,7 @@ const PaymentSchema = new Schema(
     clientId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      required: false,
     },
     serviceType: {
       type: String,
@@ -101,4 +101,9 @@ PaymentSchema.index({ status: 1 });
 PaymentSchema.index({ clientId: 1 });
 PaymentSchema.index({ createdAt: -1 });
 
-export default mongoose.models.Payment || mongoose.model<IPayment>('Payment', PaymentSchema);
+// Force recompile on hot reload by deleting cached model
+if (mongoose.models.Payment) {
+  delete mongoose.models.Payment;
+}
+
+export default mongoose.model<IPayment>('Payment', PaymentSchema);

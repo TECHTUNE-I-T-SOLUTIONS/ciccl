@@ -175,7 +175,7 @@ export default function NewProjectForm() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Project Type</label>
-            <select title="Project Type" value={projectType} onChange={e => setProjectType(e.target.value)} className="w-full px-3 py-2 border rounded">
+            <select title="Project Type" value={projectType} onChange={e => setProjectType(e.target.value)} className="w-full px-3 py-2 border rounded bg-card text-foreground">
               <option value="">Select type</option>
               {PROJECT_TYPES.map(pt => (
                 <option key={pt} value={pt}>{pt}</option>
