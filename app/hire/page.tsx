@@ -1,13 +1,43 @@
 'use client';
 
+import { Suspense } from 'react';
+import { Navbar } from '@/components/Navbar';
+import { Footer } from '@/components/Footer';
+import { MobileNav } from '@/components/MobileNav';
+import { Loader2 } from 'lucide-react';
+
+function HirePageFallback() {
+  return (
+    <main className="w-full bg-background">
+      <Navbar />
+      <div className="w-full max-w-full pt-28 pb-20 px-4 sm:px-6 lg:px-8 flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+      <Footer />
+      <MobileNav />
+    </main>
+  );
+}
+
+export default function HirePage() {
+  return (
+    <Suspense fallback={<HirePageFallback />}>
+      <HirePageContent />
+    </Suspense>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Inner component that uses useSearchParams – must be wrapped in Suspense
+// ---------------------------------------------------------------------------
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { Navbar } from '@/components/Navbar';
-import { Footer } from '@/components/Footer';
-import { MobileNav } from '@/components/MobileNav';
-import { Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { CheckCircle, XCircle } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -17,7 +47,7 @@ declare global {
 
 type PaymentStatus = 'idle' | 'initializing' | 'processing' | 'success' | 'failed';
 
-export default function HirePage() {
+function HirePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -226,7 +256,7 @@ export default function HirePage() {
   };
 
   return (
-    <main className="w-full bg-background">
+    <>
       <Navbar />
       <div className="w-full max-w-full pt-28 pb-20 px-4 sm:px-6 lg:px-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -547,6 +577,6 @@ export default function HirePage() {
       </div>
       <Footer />
       <MobileNav />
-    </main>
+    </>
   );
 }
