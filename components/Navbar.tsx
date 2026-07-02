@@ -58,14 +58,6 @@ export function Navbar() {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-4">
-            {/* <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link
-                href="/auth/admin/login"
-                className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Admin
-              </Link>
-            </motion.div> */}
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Link
                 href="/hire"
