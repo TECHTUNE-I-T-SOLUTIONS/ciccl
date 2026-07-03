@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { Toaster } from 'sonner'
 import { CustomCursor } from '@/components/CustomCursor'
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration'
 import LastVisited from '@/components/LastVisited'
+import PageTracker from '@/components/PageTracker'
 import './globals.css'
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" });
@@ -56,7 +58,9 @@ export default function RootLayout({
         <CustomCursor />
         <ServiceWorkerRegistration />
         <LastVisited />
+        <PageTracker />
         {children}
+        <Toaster richColors position="top-right" closeButton />
         <Analytics />
       </body>
     </html>

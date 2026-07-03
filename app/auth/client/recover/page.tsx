@@ -11,6 +11,7 @@ import { Footer } from '@/components/Footer';
 export default function ClientRecover() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [securityQuestion, setSecurityQuestion] = useState('');
   const [step, setStep] = useState<'email' | 'recover'>('email');
   const [formData, setFormData] = useState({
     email: '',
@@ -30,7 +31,15 @@ export default function ClientRecover() {
 
     try {
       if (step === 'email') {
+        const response = await fetch(`/api/auth/recover?email=${encodeURIComponent(formData.email)}`);
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'No account found with this email');
+        }
+        const data = await response.json();
+        setSecurityQuestion(data.securityQuestion);
         setStep('recover');
+        toast.success('Account verified. Please answer the security question.');
       } else {
         if (formData.newPassword !== formData.confirmPassword) {
           toast.error('Passwords do not match');
@@ -44,9 +53,12 @@ export default function ClientRecover() {
           body: JSON.stringify(formData),
         });
 
-        if (!response.ok) throw new Error('Recovery failed');
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Recovery failed');
+        }
         
-        toast.success('Password reset!');
+        toast.success('Password reset successfully!');
         router.push('/auth/client/login');
       }
     } catch (error: any) {

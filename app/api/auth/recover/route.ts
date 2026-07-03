@@ -4,6 +4,39 @@ import User from '@/lib/models/User';
 import { hashPassword, generateToken } from '@/lib/auth';
 import { setAuthCookie } from '@/lib/auth.server';
 
+export async function GET(request: NextRequest) {
+  try {
+    await connectDB();
+
+    const email = request.nextUrl.searchParams.get('email');
+    if (!email) {
+      return NextResponse.json(
+        { error: 'Email is required' },
+        { status: 400 }
+      );
+    }
+
+    const user = await User.findOne({ email }).select('securityQuestion');
+    if (!user) {
+      return NextResponse.json(
+        { error: 'No account found with this email' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      securityQuestion: user.securityQuestion,
+    });
+  } catch (error: any) {
+    console.error('Recovery verify error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Verification failed' },
+      { status: 400 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     await connectDB();

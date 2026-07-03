@@ -5,7 +5,7 @@ import { verifyToken } from '@/lib/auth';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: any
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = request.headers.get('authorization')?.split(' ')[1];
@@ -20,7 +20,8 @@ export async function DELETE(
 
     await connectDB();
 
-    const image = await Image.findByIdAndDelete(params.id);
+    const { id } = await params;
+    const image = await Image.findByIdAndDelete(id);
 
     if (!image) {
       return NextResponse.json({ error: 'Image not found' }, { status: 404 });
