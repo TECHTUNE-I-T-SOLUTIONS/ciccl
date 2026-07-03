@@ -30,11 +30,19 @@ export default function AdminRecover() {
     setLoading(true);
 
     try {
-      // In a real app, you would verify the email exists and get the security question
-      // For now, we'll just proceed to the recovery step
+      const response = await fetch(`/api/auth/recover?email=${encodeURIComponent(formData.email)}`);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'No account found with this email');
+      }
+
+      const data = await response.json();
+      setSecurityQuestion(data.securityQuestion);
       setStep('recover');
+      toast.success('Account verified. Please answer the security question.');
     } catch (error: any) {
-      toast.error('Failed to retrieve account');
+      toast.error(error.message || 'Failed to retrieve account');
     } finally {
       setLoading(false);
     }
@@ -123,7 +131,8 @@ export default function AdminRecover() {
                 <input
                   type="text"
                   disabled
-                  value="What is your mother's maiden name?"
+                  title="Security Question"
+                  value={securityQuestion}
                   className="w-full px-4 py-2 bg-card border border-border rounded-lg opacity-50"
                 />
               </div>

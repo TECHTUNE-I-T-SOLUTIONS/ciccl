@@ -24,6 +24,7 @@ export default function NewProjectForm() {
   const [shortSummary, setShortSummary] = useState('');
   const [description, setDescription] = useState('');
   const [projectType, setProjectType] = useState('');
+  const [customProjectType, setCustomProjectType] = useState('');
 
   const [budgetMin, setBudgetMin] = useState('');
   const [budgetMax, setBudgetMax] = useState('');
@@ -95,7 +96,9 @@ export default function NewProjectForm() {
         return;
       }
 
-      if (!title || !shortSummary || !description || !projectType) {
+      const finalProjectType = projectType === 'Other' ? customProjectType.trim() : projectType;
+
+      if (!title || !shortSummary || !description || !finalProjectType) {
         toast.error('Please fill required fields');
         return;
       }
@@ -105,7 +108,7 @@ export default function NewProjectForm() {
       form.append('slug', slug || slugify(title));
       form.append('shortSummary', shortSummary);
       form.append('description', description);
-      form.append('projectType', projectType);
+      form.append('projectType', finalProjectType);
       form.append('budgetMin', budgetMin || '0');
       form.append('budgetMax', budgetMax || '0');
       form.append('currency', currency || 'NGN');
@@ -175,12 +178,22 @@ export default function NewProjectForm() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Project Type</label>
-            <select title="Project Type" value={projectType} onChange={e => setProjectType(e.target.value)} className="w-full px-3 py-2 border rounded bg-card text-foreground">
+            <select title="Project Type" value={projectType} onChange={e => { setProjectType(e.target.value); if (e.target.value !== 'Other') setCustomProjectType(''); }} className="w-full px-3 py-2 border rounded bg-card text-foreground">
               <option value="">Select type</option>
               {PROJECT_TYPES.map(pt => (
                 <option key={pt} value={pt}>{pt}</option>
               ))}
             </select>
+            {projectType === 'Other' && (
+              <input
+                title="Custom Project Type"
+                placeholder="Enter custom project type"
+                value={customProjectType}
+                onChange={e => setCustomProjectType(e.target.value)}
+                className="w-full px-3 py-2 border rounded bg-card text-foreground mt-2"
+                required
+              />
+            )}
           </div>
 
           <div>
@@ -227,12 +240,29 @@ export default function NewProjectForm() {
 
         <div>
           <label className="block text-sm font-medium mb-2">Select existing images</label>
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-            {availableImages.map(img => (
-              <div key={img._id} className={`border rounded p-1 cursor-pointer ${selectedImageUrls.includes(img.url) ? 'ring-2 ring-primary' : ''}`} onClick={() => toggleSelectImage(img.url)}>
-                <img src={img.url} alt={img.fileName || 'image'} className="w-full h-20 object-cover rounded" />
-              </div>
-            ))}
+          <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent" style={{ scrollSnapType: 'x mandatory' }}>
+            {availableImages.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">No images available. Upload images first.</p>
+            ) : (
+              availableImages.map(img => (
+                <div
+                  key={img._id}
+                  className={`flex-shrink-0 border rounded-lg p-1.5 cursor-pointer transition-all hover:border-primary ${
+                    selectedImageUrls.includes(img.url) ? 'ring-2 ring-primary border-primary' : 'border-border'
+                  }`}
+                  style={{ scrollSnapAlign: 'start' }}
+                  onClick={() => toggleSelectImage(img.url)}
+                >
+                  <img
+                    src={img.url}
+                    alt={img.fileName || 'image'}
+                    className="w-28 h-24 object-cover rounded-md"
+                    draggable={false}
+                  />
+                  <p className="text-[10px] text-muted-foreground truncate mt-1 max-w-28">{img.fileName || 'image'}</p>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
