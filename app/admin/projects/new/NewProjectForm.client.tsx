@@ -23,7 +23,9 @@ export default function NewProjectForm() {
   const [slug, setSlug] = useState('');
   const [slugTouched, setSlugTouched] = useState(false);
   const [shortSummary, setShortSummary] = useState('');
+  const [shortSummaryError, setShortSummaryError] = useState('');
   const [description, setDescription] = useState('');
+  const [descriptionLength, setDescriptionLength] = useState(0);
   const [projectType, setProjectType] = useState('');
   const [customProjectType, setCustomProjectType] = useState('');
 
@@ -77,9 +79,9 @@ export default function NewProjectForm() {
       if (prev.includes(url)) {
         return prev.filter(u => u !== url);
       } else {
-        // Limit to 10 images to prevent payload size issues
-        if (prev.length >= 10) {
-          toast.error('Maximum 10 images allowed');
+        // Limit to 20 images to prevent payload size issues
+        if (prev.length >= 20) {
+          toast.error('Maximum 20 images allowed');
           return prev;
         }
         return [...prev, url];
@@ -107,8 +109,8 @@ export default function NewProjectForm() {
 
     // Check total limit (existing selected + current uploading + new files)
     const totalImages = selectedImageUrls.length + uploadingFiles.length + fileArray.length;
-    if (totalImages > 10) {
-      toast.error(`Maximum 10 total images allowed (currently ${selectedImageUrls.length + uploadingFiles.length}/10)`);
+    if (totalImages > 20) {
+      toast.error(`Maximum 20 total images allowed (currently ${selectedImageUrls.length + uploadingFiles.length}/20)`);
       return;
     }
 
@@ -125,11 +127,11 @@ export default function NewProjectForm() {
         // Only compress images
         if (file.type.startsWith('image/')) {
           try {
-            const compressed = await compressImage(file, 1920, 1080, 0.8);
-            const estimatedSize = estimateCompressedSize(file, 0.8);
+            const compressed = await compressImage(file, 1280, 720, 0.7);
+            const estimatedSize = estimateCompressedSize(file, 0.7);
             
             // Check if compressed size would still be too large (Vercel limit is 4.5MB, account for base64 overhead)
-            if (estimatedSize > 3 * 1024 * 1024) {
+            if (estimatedSize > 2 * 1024 * 1024) {
               toast.error(`File "${file.name}" would still be too large after compression`);
               continue;
             }
@@ -174,6 +176,11 @@ export default function NewProjectForm() {
 
       if (!title || !shortSummary || !description || !finalProjectType) {
         toast.error('Please fill required fields');
+        return;
+      }
+
+      if (shortSummary.length > 500) {
+        toast.error('Short summary must be 500 characters or less');
         return;
       }
 
@@ -241,12 +248,46 @@ export default function NewProjectForm() {
 
         <div>
           <label className="block text-sm font-medium mb-1">Short Summary</label>
-          <input title="Short Summary" placeholder="Short summary" value={shortSummary} onChange={e => setShortSummary(e.target.value)} className="w-full px-3 py-2 border rounded" />
+          <input 
+            title="Short Summary" 
+            placeholder="Short summary" 
+            value={shortSummary} 
+            onChange={e => {
+              const value = e.target.value;
+              setShortSummary(value);
+              if (value.length > 500) {
+                setShortSummaryError('Short summary must be 500 characters or less');
+              } else {
+                setShortSummaryError('');
+              }
+            }} 
+            className={`w-full px-3 py-2 border rounded ${shortSummaryError ? 'border-destructive' : ''}`}
+          />
+          <div className="flex justify-between mt-1">
+            <span className="text-xs text-muted-foreground">Brief description for previews</span>
+            <span className={`text-xs ${shortSummary.length > 500 ? 'text-destructive' : 'text-muted-foreground'}`}>
+              {shortSummary.length}/500
+            </span>
+          </div>
+          {shortSummaryError && <p className="text-xs text-destructive mt-1">{shortSummaryError}</p>}
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-1">Description</label>
-          <textarea title="Description" placeholder="Project description" value={description} onChange={e => setDescription(e.target.value)} rows={6} className="w-full px-3 py-2 border rounded" />
+          <textarea 
+            title="Description" 
+            placeholder="Project description" 
+            value={description} 
+            onChange={e => {
+              setDescription(e.target.value);
+              setDescriptionLength(e.target.value.length);
+            }} 
+            rows={6} 
+            className="w-full px-3 py-2 border rounded" 
+          />
+          <div className="flex justify-end mt-1">
+            <span className="text-xs text-muted-foreground">{descriptionLength} characters</span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -314,7 +355,7 @@ export default function NewProjectForm() {
 
         <div>
           <label className="block text-sm font-medium mb-2">
-            Select existing images ({selectedImageUrls.length}/10)
+            Select existing images ({selectedImageUrls.length}/20)
           </label>
           <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent" style={{ scrollSnapType: 'x mandatory' }}>
             {availableImages.length === 0 ? (
@@ -344,7 +385,7 @@ export default function NewProjectForm() {
 
         <div>
           <label className="block text-sm font-medium mb-1">
-            Or upload new images ({uploadingFiles.length}/10)
+            Or upload new images ({uploadingFiles.length}/20)
           </label>
           <div className="flex items-center gap-2">
             <input title="Upload Images" ref={fileInputRef} type="file" multiple accept="image/*" onChange={e => {

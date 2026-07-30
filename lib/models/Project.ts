@@ -54,7 +54,7 @@ const ProjectSchema = new Schema(
     shortSummary: {
       type: String,
       required: true,
-      maxlength: 200,
+      maxlength: 500,
     },
     coverImage: {
       type: String,
