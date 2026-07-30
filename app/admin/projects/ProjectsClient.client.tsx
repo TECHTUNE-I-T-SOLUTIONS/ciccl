@@ -2,8 +2,18 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { Loader2, Trash2, Star, Eye, Edit2 } from 'lucide-react';
+import { Loader2, Trash2, Star, Eye, Edit2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export interface AdminProjectRow {
   _id: string;
@@ -31,6 +41,8 @@ export default function ProjectsClient({ initialProjects, initialFilter }: Props
   const [projects, setProjects] = useState<AdminProjectRow[]>(initialProjects);
   const [selectedFilter, setSelectedFilter] = useState<Props['initialFilter']>(initialFilter);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<AdminProjectRow | null>(null);
 
   const filteredProjects = useMemo(() => {
     if (selectedFilter === 'published') return projects.filter((p) => p.isPublished);
@@ -61,17 +73,24 @@ export default function ProjectsClient({ initialProjects, initialFilter }: Props
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this project?')) return;
-    setLoadingId(id);
+  const handleDeleteClick = (project: AdminProjectRow) => {
+    setProjectToDelete(project);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!projectToDelete) return;
+    setLoadingId(projectToDelete._id);
     try {
       const token = localStorage.getItem('adminToken');
       const headers: Record<string, string> = {};
       if (token) headers.Authorization = `Bearer ${token}`;
-      const res = await fetch(`/api/projects/by-id/${id}`, { method: 'DELETE', headers });
+      const res = await fetch(`/api/projects/by-id/${projectToDelete._id}`, { method: 'DELETE', headers });
       if (!res.ok) throw new Error('Failed to delete');
-      setProjects((prev) => prev.filter((p) => p._id !== id));
+      setProjects((prev) => prev.filter((p) => p._id !== projectToDelete._id));
       toast.success('Project deleted');
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
     } catch (error) {
       toast.error((error as Error).message || 'Failed to delete');
     } finally {
@@ -190,7 +209,7 @@ export default function ProjectsClient({ initialProjects, initialFilter }: Props
 
                 <button
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-border bg-background text-muted-foreground hover:border-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
-                  onClick={() => handleDelete(project._id)}
+                  onClick={() => handleDeleteClick(project)}
                   disabled={loadingId === project._id}
                 >
                   {loadingId === project._id ? (
@@ -205,6 +224,37 @@ export default function ProjectsClient({ initialProjects, initialFilter }: Props
           ))
         )}
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Delete Project
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <span className="font-semibold text-foreground">"{projectToDelete?.title}"</span>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loadingId === projectToDelete?._id}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={loadingId === projectToDelete?._id}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {loadingId === projectToDelete?._id ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
