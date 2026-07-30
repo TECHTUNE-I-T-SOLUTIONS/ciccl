@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2, Upload } from 'lucide-react';
 import { PROJECT_TYPES } from '@/lib/constants/projectTypes';
+import { compressImage, validateFileSize, estimateCompressedSize } from '@/lib/utils/imageCompression';
 
 function slugify(text: string) {
   return text
@@ -47,6 +48,7 @@ export default function NewProjectForm() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [saving, setSaving] = useState(false);
+  const [compressing, setCompressing] = useState(false);
 
   useEffect(() => {
     if (!slugTouched) setSlug(slugify(title));
@@ -71,7 +73,18 @@ export default function NewProjectForm() {
   }, []);
 
   const toggleSelectImage = (url: string) => {
-    setSelectedImageUrls(prev => (prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url]));
+    setSelectedImageUrls(prev => {
+      if (prev.includes(url)) {
+        return prev.filter(u => u !== url);
+      } else {
+        // Limit to 10 images to prevent payload size issues
+        if (prev.length >= 10) {
+          toast.error('Maximum 10 images allowed');
+          return prev;
+        }
+        return [...prev, url];
+      }
+    });
   };
 
   useEffect(() => {
@@ -83,6 +96,66 @@ export default function NewProjectForm() {
   const removeUploadingFile = (index: number) => {
     setUploadingFiles(prev => prev.filter((_, i) => i !== index));
     setPreviewUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleFileSelect = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files);
+    const validFiles: File[] = [];
+    const compressedFiles: File[] = [];
+
+    // Check total limit (existing + new files)
+    if (uploadingFiles.length + fileArray.length > 10) {
+      toast.error(`Maximum 10 total images allowed (currently ${uploadingFiles.length}/10)`);
+      return;
+    }
+
+    setCompressing(true);
+
+    try {
+      for (const file of fileArray) {
+        // Validate file size (max 10MB before compression)
+        if (!validateFileSize(file, 10)) {
+          toast.error(`File "${file.name}" is too large (max 10MB)`);
+          continue;
+        }
+
+        // Only compress images
+        if (file.type.startsWith('image/')) {
+          try {
+            const compressed = await compressImage(file, 1920, 1080, 0.8);
+            const estimatedSize = estimateCompressedSize(file, 0.8);
+            
+            // Check if compressed size would still be too large (Vercel limit is 4.5MB, account for base64 overhead)
+            if (estimatedSize > 3 * 1024 * 1024) {
+              toast.error(`File "${file.name}" would still be too large after compression`);
+              continue;
+            }
+
+            compressedFiles.push(compressed);
+            validFiles.push(compressed);
+          } catch (err) {
+            console.error('Compression error:', err);
+            toast.error(`Failed to compress "${file.name}", using original`);
+            validFiles.push(file);
+          }
+        } else {
+          validFiles.push(file);
+        }
+      }
+
+      if (compressedFiles.length > 0) {
+        toast.success(`Compressed ${compressedFiles.length} image(s)`);
+      }
+
+      setUploadingFiles(prev => [...prev, ...validFiles]);
+    } catch (err) {
+      console.error('File processing error:', err);
+      toast.error('Error processing files');
+    } finally {
+      setCompressing(false);
+    }
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -239,7 +312,9 @@ export default function NewProjectForm() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Select existing images</label>
+          <label className="block text-sm font-medium mb-2">
+            Select existing images ({selectedImageUrls.length}/10)
+          </label>
           <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent" style={{ scrollSnapType: 'x mandatory' }}>
             {availableImages.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4">No images available. Upload images first.</p>
@@ -267,15 +342,23 @@ export default function NewProjectForm() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Or upload new images</label>
+          <label className="block text-sm font-medium mb-1">
+            Or upload new images ({uploadingFiles.length}/10)
+          </label>
           <div className="flex items-center gap-2">
             <input title="Upload Images" ref={fileInputRef} type="file" multiple accept="image/*" onChange={e => {
-              const files = Array.from(e.target.files || []);
-              setUploadingFiles(prev => [...prev, ...files]);
+              handleFileSelect(e.target.files);
+              e.target.value = '';
             }} className="hidden" />
             <div className="flex items-center gap-2">
-              <button type="button" onClick={() => fileInputRef.current?.click()} className="px-4 py-2 bg-card border rounded flex items-center gap-2">
-                <Upload className="w-4 h-4" /> Choose files
+              <button 
+                type="button" 
+                onClick={() => fileInputRef.current?.click()} 
+                disabled={compressing}
+                className="px-4 py-2 bg-card border rounded flex items-center gap-2 disabled:opacity-50"
+              >
+                {compressing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} 
+                {compressing ? 'Compressing...' : 'Choose files'}
               </button>
               {uploadingFiles.length > 0 && <span>{uploadingFiles.length} file(s) selected</span>}
             </div>
