@@ -54,7 +54,7 @@ export default function RootLayout({
       <head>
         <meta charSet="utf-8" />
       </head>
-      <body className={`${geist.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground`}>
+      <body className={`${geist.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground`} suppressHydrationWarning>
         <CustomCursor />
         <ServiceWorkerRegistration />
         <LastVisited />
