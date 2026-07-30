@@ -34,7 +34,85 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const user = verifyToken(token);
     if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
 
-    const body = await request.json();
+    const contentType = request.headers.get('content-type');
+    let body: any;
+
+    // Handle FormData (multipart/form-data) for file uploads
+    if (contentType?.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      body = {};
+      
+      // Extract all form fields
+      for (const [key, value] of formData.entries()) {
+        if (key === 'files') continue; // Handle files separately
+        body[key] = value;
+      }
+
+      // Parse JSON fields
+      const jsonFields = ['features', 'problemsSolved', 'deliverables', 'hashtags', 'existingImages'];
+      for (const field of jsonFields) {
+        if (body[field]) {
+          try {
+            body[field] = JSON.parse(body[field]);
+          } catch (e) {
+            // Keep as string if parsing fails
+          }
+        }
+      }
+
+      // Parse budget and timeline
+      if (body.budgetMin || body.budgetMax || body.currency) {
+        body.budgetScope = {
+          min: body.budgetMin ? Number(body.budgetMin) : 0,
+          max: body.budgetMax ? Number(body.budgetMax) : 0,
+          currency: body.currency || 'NGN',
+        };
+        delete body.budgetMin;
+        delete body.budgetMax;
+        delete body.currency;
+      }
+
+      if (body.timelineStart || body.timelineEnd) {
+        body.timeline = {
+          startDate: body.timelineStart || '',
+          endDate: body.timelineEnd || '',
+        };
+        delete body.timelineStart;
+        delete body.timelineEnd;
+      }
+
+      // Parse boolean fields
+      if (body.isPublished) body.isPublished = body.isPublished === 'true';
+      if (body.isFeatured) body.isFeatured = body.isFeatured === 'true';
+
+      // Handle file uploads
+      const fileEntries = formData.getAll('files') as File[];
+      const files = Array.isArray(fileEntries) ? fileEntries : [];
+      const uploadedImages: any[] = [];
+
+      for (const file of files) {
+        const buffer = await file.arrayBuffer();
+        const base64 = Buffer.from(buffer).toString('base64');
+        const url = `data:${file.type};base64,${base64}`;
+        
+        const image = new Image({
+          fileName: file.name,
+          url,
+          size: file.size,
+          mimeType: file.type,
+        });
+        await image.save();
+        uploadedImages.push(image);
+      }
+
+      // Combine existing images with newly uploaded images
+      const existingImages = body.existingImages || [];
+      body.images = [...existingImages, ...uploadedImages.map((i) => i.url)];
+      delete body.existingImages;
+    } else {
+      // Handle JSON body
+      body = await request.json();
+    }
 
     const allowedUpdates: any = {};
     const fields = [
