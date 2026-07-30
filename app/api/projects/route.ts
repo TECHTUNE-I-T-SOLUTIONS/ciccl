@@ -180,10 +180,12 @@ export async function POST(request: NextRequest) {
       const buffer = await file.arrayBuffer();
       const base64 = Buffer.from(buffer).toString('base64');
       const url = `data:${file.type};base64,${base64}`;
-      const uniqueFilename = `${Date.now()}-${Math.random().toString(36).slice(2)}-${file.name}`;
+      const timestamp = Date.now();
+      const randomSuffix = Math.random().toString(36).substring(2, 9);
+      const uniqueFilename = `${timestamp}-${randomSuffix}-${file.name}`;
 
       const image = new Image({
-        fileName: file.name,
+        fileName: uniqueFilename,
         filename: uniqueFilename,
         originalName: file.name,
         mimeType: file.type,
@@ -192,9 +194,23 @@ export async function POST(request: NextRequest) {
         uploadedAt: new Date(),
       });
 
-      await image.save();
-      uploadedImages.push(image);
-      uploadedImageIds.push(image._id);
+      try {
+        await image.save();
+        uploadedImages.push(image);
+        uploadedImageIds.push(image._id);
+      } catch (saveError: any) {
+        // If there's a duplicate key error, try with a different filename
+        if (saveError.code === 11000) {
+          const retryFilename = `${timestamp}-${randomSuffix}-${randomSuffix}-${file.name}`;
+          image.fileName = retryFilename;
+          image.filename = retryFilename;
+          await image.save();
+          uploadedImages.push(image);
+          uploadedImageIds.push(image._id);
+        } else {
+          throw saveError;
+        }
+      }
     }
 
     const images = [...(existingImages || []), ...uploadedImages.map((i) => i.url)];
