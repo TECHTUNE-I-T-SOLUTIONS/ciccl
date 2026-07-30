@@ -95,14 +95,35 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         const base64 = Buffer.from(buffer).toString('base64');
         const url = `data:${file.type};base64,${base64}`;
         
+        // Generate a unique filename to avoid duplicate key errors
+        const timestamp = Date.now();
+        const randomSuffix = Math.random().toString(36).substring(2, 9);
+        const uniqueFileName = `${timestamp}-${randomSuffix}-${file.name}`;
+        
         const image = new Image({
-          fileName: file.name,
+          fileName: uniqueFileName,
+          filename: uniqueFileName,
+          originalName: file.name,
           url,
           size: file.size,
           mimeType: file.type,
         });
-        await image.save();
-        uploadedImages.push(image);
+        
+        try {
+          await image.save();
+          uploadedImages.push(image);
+        } catch (saveError: any) {
+          // If there's a duplicate key error, try with a different filename
+          if (saveError.code === 11000) {
+            const retryFileName = `${timestamp}-${randomSuffix}-${randomSuffix}-${file.name}`;
+            image.fileName = retryFileName;
+            image.filename = retryFileName;
+            await image.save();
+            uploadedImages.push(image);
+          } else {
+            throw saveError;
+          }
+        }
       }
 
       // Combine existing images with newly uploaded images
