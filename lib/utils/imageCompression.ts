@@ -1,16 +1,16 @@
 /**
  * Compress an image file using Canvas API
  * @param file - The image file to compress
- * @param maxWidth - Maximum width of the compressed image (default: 1920)
- * @param maxHeight - Maximum height of the compressed image (default: 1080)
- * @param quality - JPEG quality (0-1, default: 0.8)
+ * @param maxWidth - Maximum width of the compressed image (default: 1280)
+ * @param maxHeight - Maximum height of the compressed image (default: 720)
+ * @param quality - JPEG quality (0-1, default: 0.7)
  * @returns Promise<File> - Compressed image file
  */
 export async function compressImage(
   file: File,
-  maxWidth: number = 1920,
-  maxHeight: number = 1080,
-  quality: number = 0.8
+  maxWidth: number = 1280,
+  maxHeight: number = 720,
+  quality: number = 0.7
 ): Promise<File> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -79,10 +79,10 @@ export async function compressImage(
 /**
  * Validate file size before compression
  * @param file - The file to validate
- * @param maxSizeMB - Maximum size in MB (default: 10)
+ * @param maxSizeMB - Maximum size in MB (default: 15)
  * @returns boolean - Whether the file is within size limits
  */
-export function validateFileSize(file: File, maxSizeMB: number = 10): boolean {
+export function validateFileSize(file: File, maxSizeMB: number = 15): boolean {
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
   return file.size <= maxSizeBytes;
 }
@@ -93,7 +93,7 @@ export function validateFileSize(file: File, maxSizeMB: number = 10): boolean {
  * @param quality - Compression quality
  * @returns Estimated size in bytes
  */
-export function estimateCompressedSize(file: File, quality: number = 0.8): number {
-  // Rough estimate: original size * quality * 0.7 (dimension reduction factor)
-  return Math.floor(file.size * quality * 0.7);
+export function estimateCompressedSize(file: File, quality: number = 0.7): number {
+  // Rough estimate: original size * quality * 0.5 (more aggressive dimension reduction)
+  return Math.floor(file.size * quality * 0.5);
 }
