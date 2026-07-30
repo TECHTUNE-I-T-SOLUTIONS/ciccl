@@ -105,9 +105,10 @@ export default function NewProjectForm() {
     const validFiles: File[] = [];
     const compressedFiles: File[] = [];
 
-    // Check total limit (existing + new files)
-    if (uploadingFiles.length + fileArray.length > 10) {
-      toast.error(`Maximum 10 total images allowed (currently ${uploadingFiles.length}/10)`);
+    // Check total limit (existing selected + current uploading + new files)
+    const totalImages = selectedImageUrls.length + uploadingFiles.length + fileArray.length;
+    if (totalImages > 10) {
+      toast.error(`Maximum 10 total images allowed (currently ${selectedImageUrls.length + uploadingFiles.length}/10)`);
       return;
     }
 
